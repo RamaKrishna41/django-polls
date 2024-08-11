@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.6.4-focal
+    restart: always
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: django_polls
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MARIADB_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py createsuperuser --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+#    volumes:
+#      - ./:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+      - DJANGO_SUPERUSER_PASSWORD=ramakrishna
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=django_polls
+      - DB_USER=user
+      - DB_PASSWORD=password
+
+volumes:
+  mysql_data:
