@@ -1,0 +1,20 @@
+replicaCount: 2
+
+image:
+  repository: mariadb
+  tag: "10.6.4-focal"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 3306
+
+configMap:
+  APP_ENV: "dev"
+  MYSQL_DATABASE: "django_polls"
+  MYSQL_USER: "user"
+
+secret:
+  MARIADB_ROOT_PASSWORD: "cm9vdHBhc3N3b3Jk"  # base64 encoded value of original password
+  MYSQL_PASSWORD: "cGFzc3dvcmQ="
+  MYSQL_ROOT_PASSWORD: "cm9vdHBhc3N3b3Jk"

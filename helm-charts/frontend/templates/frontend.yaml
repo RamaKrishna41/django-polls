@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-configmap
+  namespace: frontend
+  labels:
+    app: frontend
+    env: dev
+data:
+  DB_HOST: {{ .Values.configMap.DB_HOST }}
+  DB_NAME: {{ .Values.configMap.DB_NAME }}
+  DB_USER: {{ .Values.configMap.DB_USER }}
+  DJANGO_SUPERUSER_USERNAME: {{ .Values.configMap.DJANGO_SUPERUSER_USERNAME }}
+  DJANGO_SUPERUSER_EMAIL: {{ .Values.configMap.DJANGO_SUPERUSER_EMAIL }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: frontend-secret
+  namespace: frontend
+type: Opaque
+data:
+  DB_PASSWORD: {{ .Values.secret.DB_PASSWORD }}
+  DJANGO_SUPERUSER_PASSWORD: {{ .Values.secret.DJANGO_SUPERUSER_PASSWORD }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "django-polls.fullname" . }}
+  namespace: frontend
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      version: v1
+  template:
+    metadata:
+      labels:
+        env: dev
+        app: frontend
+        version: v1
+    spec:
+      containers:
+      - name: frontend-container
+        image: {{ .Values.image.repository }}
+        command: ["/bin/sh"]
+        args:
+          - "-c"
+          - |
+            python manage.py makemigrations &&
+            python manage.py migrate &&
+            python manage.py createsuperuser --noinput &&
+            python manage.py runserver 0.0.0.0:8000
+        ports:
+        - containerPort: {{ .Values.image.port }}
+        envFrom:
+          - configMapRef:
+              name: frontend-configmap
+          - secretRef:
+              name: frontend-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: frontend
+  labels:
+    version: v1
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - port: {{ .Values.service.port }}
+    targetPort: 8000
+  selector:
+    app: frontend
+    version: v1
+    env: dev

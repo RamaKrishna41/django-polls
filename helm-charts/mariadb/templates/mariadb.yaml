@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mariadb-configmap
+  namespace: mariadb
+  labels:
+    app: mariadb
+    env: dev
+data:
+  APP_ENV: {{ .Values.configMap.APP_ENV }}
+  MYSQL_DATABASE: {{ .Values.configMap.MYSQL_DATABASE }}
+  MYSQL_USER: {{ .Values.configMap.MYSQL_USER }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-secret
+  namespace: mariadb
+type: Opaque
+data:
+  MARIADB_ROOT_PASSWORD: {{ .Values.secret.MARIADB_ROOT_PASSWORD }}
+  MYSQL_PASSWORD: {{ .Values.secret.MYSQL_PASSWORD }}
+  MYSQL_ROOT_PASSWORD: {{ .Values.secret.MYSQL_ROOT_PASSWORD }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-deployment
+  namespace: mariadb
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      version: v1
+  template:
+    metadata:
+      labels:
+        env: dev
+        app: mariadb
+        version: v1
+    spec:
+      containers:
+      - name: mariadb-container
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: 3306
+        envFrom:
+          - configMapRef:
+              name: mariadb-configmap
+              optional: false
+          - secretRef:
+              name: mariadb-secret
+              optional: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-service
+  namespace: mariadb
+  labels:
+    version: v1
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - port: {{ .Values.service.port }}
+    targetPort: 3306
+  selector:
+    app: mariadb
+    version: v1
+    env: dev

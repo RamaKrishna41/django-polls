@@ -1,0 +1,21 @@
+replicaCount: 2
+
+image:
+  repository: ramakrishna41/django-polls
+  pullPolicy: IfNotPresent
+  port: 8000
+
+service:
+  type: LoadBalancer
+  port: 8000
+
+configMap:
+  DB_HOST: "mariadb-service.mariadb.svc.cluster.local"
+  DB_NAME: "django_polls"
+  DB_USER: "user"
+  DJANGO_SUPERUSER_USERNAME: "admin"
+  DJANGO_SUPERUSER_EMAIL: "admin@example.com"
+
+secret:
+  DB_PASSWORD: "cGFzc3dvcmQ="  # base64 encoded value of original password
+  DJANGO_SUPERUSER_PASSWORD: "cmFtYWtyaXNobmE="
