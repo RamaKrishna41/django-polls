@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-configmap
+  namespace: frontend
+  labels:
+    app: frontend
+    env: dev
+data:
+  DB_HOST: "mariadb-service.mariadb.svc.cluster.local"
+  DB_NAME: "django_polls"
+  DB_USER: "user"
+  DJANGO_SUPERUSER_USERNAME: "admin"
+  DJANGO_SUPERUSER_EMAIL: "admin@example.com"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: frontend-secret
+  namespace: frontend
+type: Opaque
+data:
+  DB_PASSWORD: cGFzc3dvcmQ=                # base64 encoded value of original password - command: echo -n wordpress | base64
+  DJANGO_SUPERUSER_PASSWORD: cmFtYWtyaXNobmE=
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: frontend
+spec:
+  selector:
+    matchLabels:
+      version: v1           # Pod label to be used by Service to select the pods from this deployment
+  replicas: 2                 # number of replica of the Pods
+  template:
+    metadata:
+      labels:
+        env: dev         # Pod's label
+        app: frontend
+        version: v1
+    spec:
+      containers:
+      - name: frontend-container
+        image: ramakrishna41/django-polls      # which image it will use
+        command: ["/bin/sh"]
+        args:
+          - "-c"
+          - |
+            python manage.py makemigrations &&
+            python manage.py migrate &&
+            python manage.py createsuperuser --noinput &&
+            python manage.py runserver 0.0.0.0:8000
+        ports:
+        - containerPort: 8000     # Port exposed by container inside the Pod
+        envFrom:
+          - configMapRef:
+              name: frontend-configmap
+              optional: false
+          - secretRef:
+              name: frontend-secret
+              optional: false
+      # imagePullSecrets:
+      # - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: frontend
+  labels:
+    version: v1       # label of the service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8000            # the port on which the service is listening
+    targetPort: 8000      # the port exposed by Pod (we defined in the deployment as part of `containerPort)
+  selector:
+    app: frontend       # Pod label that service is using to select Pods
+    version: v1
+    env: dev

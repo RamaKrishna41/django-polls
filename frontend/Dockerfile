@@ -24,7 +24,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Step 6) Copy the project files to the container
-COPY . .
+COPY .. .
 # Note: "." means all files
 
 # Step 7) Install Python dependencies

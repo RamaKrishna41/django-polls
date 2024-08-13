@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mariadb-configmap
+  namespace: mariadb
+  labels:
+    app: mariadb
+    env: dev
+data:
+  APP_ENV: "dev"
+  MYSQL_DATABASE: "django_polls"
+  MYSQL_USER: "user"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-secret
+  namespace: mariadb
+type: Opaque
+data:
+  MARIADB_ROOT_PASSWORD: cm9vdHBhc3N3b3Jk
+  MYSQL_PASSWORD: cGFzc3dvcmQ=
+  MYSQL_ROOT_PASSWORD: cm9vdHBhc3N3b3Jk                ## base64 encoded value of original password - command: echo -n wordpress | base64
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-deployment
+  namespace: mariadb
+spec:
+  selector:
+    matchLabels:
+      version: v1           # Pod label to be used by Service to select the pods from this deployment
+  replicas: 2                 # number of replica of the Pods
+  template:
+    metadata:
+      labels:
+        env: dev         # Pod's label
+        app: mariadb
+        version: v1
+    spec:
+      containers:
+      - name: mariadb-container
+        image: mariadb:10.6.4-focal      # which image it will use
+        ports:
+        - containerPort: 3306     # Port exposed by container inside the Pod
+        envFrom:
+          - configMapRef:
+              name: mariadb-configmap
+              optional: false
+          - secretRef:
+              name: mariadb-secret
+              optional: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-service
+  namespace: mariadb
+  labels:
+    version: v1       # label of the service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3306            # the port on which the service is listening
+    targetPort: 3306      # the port exposed by Pod (we defined in the deployment as part of `containerPort)
+  selector:
+    app: mariadb       # Pod label that service is using to select Pods
