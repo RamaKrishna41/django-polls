@@ -26,7 +26,7 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "django-polls.fullname" . }}
+  name: frontend-deployment
   namespace: frontend
 spec:
   replicas: {{ .Values.replicaCount }}
